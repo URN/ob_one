@@ -25,5 +25,10 @@ and then copy binaries into `/usr/local/`
 
 ### Options
 Flags follow standard GNU convention.
-`-b -B -c -f -p -q -r -v'
+
+`-b -B -c -f -p -q -r -v`
+
+**b:** Bytes per frame *(default 96)*
+
+Sets the desired size of bytes OPUS should convert a frame of audio.
 
