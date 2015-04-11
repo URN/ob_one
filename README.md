@@ -16,11 +16,11 @@ ALSA *(Linux only)*	http://www.alsa-project.org
 
 For a quick installation of dependecies on Linux use your package manager, for example for Debian based distros:
 
-'apt-get install libopus-dev libasound2-dev portaudio19-dev'
+`apt-get install libopus-dev libasound2-dev portaudio19-dev`
 
 and for OSX users (who have macports installed)
 
-'port install portaudio libopus'
+`port install portaudio libopus`
 
 ## Installation 
 Clone reposity via `git clone https://github.com/urn/ob_one.git` and browse into the operating system directory of choice. From the terminal run the command:
