@@ -1,4 +1,8 @@
-#inlcude <alsa/asoundlib.h>
+#include <AudioToolbox/AudioToolbox.h>
+#include <AudioUnit/AudioUnit.h>
+#include <Carbon/Carbon.h>
+#include <CoreAudio/CoreAudio.h>
+#include <CoreServices/CoreServices.h>
 #include <netdb.h>
 #include <portaudio.h>
 #include <stdio.h>
@@ -13,18 +17,32 @@
 #define defaultChannels 2
 #define defaultSampleRate 48000
 #define defaultFrameSize 480
-#define defaultBufferTime 25 // milliseconds
+#define defaultBufferTime 50 // milliseconds
 #define defaultPort "1350"
 
+#define DEFAULT_MAX_ENCODED_BYTES 8192
 
-int main(int argc, const char * argv[]) {
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+int main(int argc, char *argv[])
+{
     
     int sd, r;
+    char s[INET6_ADDRSTRLEN];
     ssize_t bytes;
+    size_t addr_len;
     struct addrinfo hints, *servinfo, *p;
+    struct sockaddr_storage their_addr;
     PaError err;
     PaStream *stream;
-    OpusEncoder *encoder;
+    PaStreamParameters outputParameters;
+    OpusDecoder *decoder;
     
     /* options, and variables for calling getopt */
     int c;
@@ -32,13 +50,13 @@ int main(int argc, const char * argv[]) {
     int channels = defaultChannels;
     opus_int32 rate = defaultSampleRate;
     int frame = defaultFrameSize;
-    int buffer_time = defaultBufferTime;
+    PaTime buffer_time = defaultBufferTime;
     char *port = defaultPort;
     
     int verbosity = 1;
     
     fputs(":: [OB ONE] ::\n", stderr);
-    fputs("TX: George O'Neill, 2015\n", stderr);
+    fputs("RX: George O'Neill, 2015\n", stderr);
     
     while ((c = getopt (argc, argv, "b:B:c:f:p:qr:v")) != -1) {
         switch (c) {
@@ -96,33 +114,29 @@ int main(int argc, const char * argv[]) {
         }
     }
     
-    if (argc-optind != 1) {
-        fputs("usage: tx [options] <hostname>\n", stderr);
+
+    /* these declarations moved down here, because the size depends on the options */
+    opus_int16 abuf[frame * channels *sizeof(opus_int16)];
+    char encoded[DEFAULT_MAX_ENCODED_BYTES];
+    
+    if (argc-optind != 0) {
+        fputs("usage: rx [options]\n", stderr);
         return -1;
     }
     
-    printf("\nTX destination: \t%s:%s\n",argv[optind],port);
-    printf("Channels: \t\t%d\n",channels);
-    printf("Sample rate: \t\t%d Hz\n",rate);
-    printf("Packet length: \t\t%d ms\n",1000 * frame/rate);
-    
-    /* these declarations moved down here, because the size depends on the options */
-    char* abuf[frame * channels * sizeof(opus_int16)];
-    char encoded[bytes_per_frame];
-    
-    printf("Preparing tranmission:\n");
-    
-    /* Prepare networking, bind to the sockets */
-    
+    printf("Listening on port %s: establishing connection",port);
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE; /* use my IP */
     
-    r = getaddrinfo(argv[optind], port, &hints, &servinfo);
-    if (r != 0) {
+    r = getaddrinfo(NULL, port, &hints, &servinfo);
+    if (r == -1) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(r));
         return -1;
     }
+    
+    /* Bind to the first one we can */
     
     for (p = servinfo; p != NULL; p = p->ai_next) {
         sd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
@@ -130,68 +144,104 @@ int main(int argc, const char * argv[]) {
             perror("socket");
             continue;
         }
+        
+        if (bind(sd, p->ai_addr, p->ai_addrlen) == -1) {
+            if (close(sd) == -1) {
+                perror("close");
+                return -1;
+            }
+            perror("bind");
+            continue;
+        }
+        
         break;
     }
+    
     
     if (p == NULL) {
         fputs("Failed to bind socket\n", stderr);
         return -1;
     }
     
-    /* Intiate audio harcdware */
+    freeaddrinfo(servinfo);
     
+    fputs("Waiting to recvfrom()...\n", stderr);
+    
+    addr_len = sizeof(their_addr);
+    
+    /* Prepare the audio codec */
+    
+    decoder = opus_decoder_create(rate, channels, &err);
+    if (err<0) {
+        fprintf(stderr,"Error creating decoder: %s\n", opus_strerror(err));
+        return -1;
+    }
+    
+    /* Prepare the audio device via portaudio*/
+
+    outputParameters.device = 1; // 1 for osx, 0 for linux
+    outputParameters.channelCount = channels;
+    outputParameters.sampleFormat = paInt16;
+    outputParameters.suggestedLatency = buffer_time / 1000;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
+
     err = Pa_Initialize();
     if (err != paNoError) {
-        printf("PortAudio failed to initialise: %s\n", Pa_GetErrorText(r));
+        printf("PortAudio failed to initialise: %s\n", Pa_GetErrorText(err));
         return -1;
     }
     
-    err = Pa_OpenDefaultStream(&stream, channels, 0, paInt16, rate, frame, NULL, NULL);
+    err = Pa_OpenStream(&stream, NULL, &outputParameters, rate, frame, paNoFlag, NULL, NULL);
     if (err != paNoError) {
-        printf("PortAudio failed to open stream: %s\n", Pa_GetErrorText(r));
-        return -1;
-    }
-    
-    /* Initiate Opus */
-    
-    encoder = opus_encoder_create(rate, channels, OPUS_APPLICATION_AUDIO, &r);
-    if (r < 0 ) {
-        fprintf(stderr,"Failed to initialise Opus codec: %s\n", opus_strerror(r));
+        printf("PortAudio failed to open stream: %s\n", Pa_GetErrorText(err));
         return -1;
     }
     
     err = Pa_StartStream(stream);
     if (err != paNoError) {
-        printf("PortAudio failed to start stream: %s\n", Pa_GetErrorText(r));
+        printf("PortAudio failed to start stream: %s\n", Pa_GetErrorText(err));
         return -1;
     }
+
     
-    /* Tranmission Loop */
-    
-    printf("Tranmission started: Press ctrl + C to abort\n\n");
-    for(;;) {
-        
-        err = Pa_ReadStream(stream, abuf, frame);
-        if (err != paNoError) {
-            printf("PortAudio failed to read stream: %s\n", Pa_GetErrorText(r));
-            return -1;
-        }
-        
-        r = opus_encode(encoder, abuf, frame, encoded, bytes_per_frame * channels);
-        if (r < 0) {
-            fprintf(stderr, "Error encoding PCM to Opus: %s\n", opus_strerror(r));
-            return -1;
-        }
-        
-        bytes = sendto(sd, encoded, r, 0,
-                       p->ai_addr, p->ai_addrlen);
+    /* Main loop */
+    printf("RXing, press ctrl + C to abort\n");
+    for (;;) {
+        bytes = recvfrom(sd, encoded, sizeof(encoded), 0,
+                         (struct sockaddr*)&their_addr, &addr_len);
         if (bytes == -1) {
-            perror("sendto");
+            perror("recvfrom");
             return -1;
-        }else{
-            printf("t");
-            fflush(stdout);
         }
+        
+        switch (verbosity) {
+            case 0:
+                fprintf(stderr, "Receiving started.\n");
+                verbosity = 255;
+                break;
+            case 1:
+                fputc('|', stderr);
+                break;
+            case 2:
+                fprintf(stderr, "%s: %zd bytes\n",
+                        inet_ntop(their_addr.ss_family,
+                                  get_in_addr((struct sockaddr*)&their_addr),
+                                  s, sizeof(s)), bytes);
+                break;
+        }
+        
+        r = opus_decode(decoder, encoded, bytes, abuf, frame, 0);
+        if(r<0) {
+            fprintf(stderr, "Opus failed to decode: %s\n", opus_strerror(r));
+            // return -1;
+        } 
+        
+        err = Pa_WriteStream(stream, abuf, frame);
+        if (err != paNoError) {
+            printf(".");
+            continue;
+        }
+        fflush(stderr);
     }
     
     /* Close audio, networking */
@@ -212,5 +262,4 @@ int main(int argc, const char * argv[]) {
     //    }
     
     return 0;
-    
 }

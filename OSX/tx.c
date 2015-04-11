@@ -1,4 +1,8 @@
-#inlcude <alsa/asoundlib.h>
+#include <AudioToolbox/AudioToolbox.h>
+#include <AudioUnit/AudioUnit.h>
+#include <Carbon/Carbon.h>
+#include <CoreAudio/CoreAudio.h>
+#include <CoreServices/CoreServices.h>
 #include <netdb.h>
 #include <portaudio.h>
 #include <stdio.h>

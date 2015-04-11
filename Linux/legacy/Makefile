@@ -1,5 +1,5 @@
 CFLAGS+=-MMD
-LDLIBS+=lportaudio -lasound -lopus
+LDLIBS+=-lasound -lopus
 
 -include .config
 
@@ -7,9 +7,9 @@ LDLIBS+=lportaudio -lasound -lopus
 
 all:	tx rx
 
-tx:	tx.o
+tx:	tx.o device.o
 
-rx:	rx.o
+rx:	rx.o device.o
 
 clean:
 	rm -f tx rx
