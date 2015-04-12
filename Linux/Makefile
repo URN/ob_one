@@ -1,5 +1,5 @@
 CFLAGS+=-MMD
-LDLIBS+=lportaudio -lasound -lopus
+LDLIBS+=-lportaudio -lasound -lopus
 
 -include .config
 
