@@ -1,4 +1,4 @@
-#inlcude <alsa/asoundlib.h>
+#include <alsa/asoundlib.h>
 #include <netdb.h>
 #include <portaudio.h>
 #include <stdio.h>
