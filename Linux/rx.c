@@ -15,6 +15,7 @@
 #define defaultFrameSize 480
 #define defaultBufferTime 50 // milliseconds
 #define defaultPort "1350"
+#define defaultDevice 0 // deault 1 for osx, 0 for linux
 
 #define DEFAULT_MAX_ENCODED_BYTES 8192
 
@@ -47,6 +48,7 @@ int main(int argc, char *argv[])
     opus_int32 rate = defaultSampleRate;
     int frame = defaultFrameSize;
     PaTime buffer_time = defaultBufferTime;
+    int device = defaultDevice;
     char *port = defaultPort;
     
     int verbosity = 1;
@@ -64,6 +66,9 @@ int main(int argc, char *argv[])
                 break;
             case 'c':
                 channels = atoi(optarg);
+                break;
+            case 'd';
+                device = atoi(optarg);
                 break;
             case 'f':
                 frame = atoi(optarg);
@@ -95,6 +100,7 @@ int main(int argc, char *argv[])
                     case 'b':
                     case 'B':
                     case 'c':
+                    case 'd';
                     case 'f':
                     case 'p':
                     case 'r':
@@ -175,7 +181,7 @@ int main(int argc, char *argv[])
     
     /* Prepare the audio device via portaudio*/
 
-    outputParameters.device = 0;	// 0 for linux, 1 for osx
+    outputParameters.device = device;
     outputParameters.channelCount = channels;
     outputParameters.sampleFormat = paInt16;
     outputParameters.suggestedLatency = buffer_time / 1000;

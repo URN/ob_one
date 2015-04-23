@@ -37,13 +37,15 @@ and then copy binaries into `/usr/local/`
 ### Options
 Flags follow standard GNU convention.
 
-`-b -B -c -f -p -q -r -v`
+`-b -B -c -d -f -p -q -r -v`
 
 **b:** Bytes per frame per channel *(default 96)* Sets the desired size of bytes OPUS should convert a frame of audio.
 
 **B:** Buffer size *(RX only, default 50)* Sets the size of the playback buffer in milliseconds.
 
 **c:** No. Channels *(default 2)* sets between mono and stereo.
+
+**d:** Device *(default OS dependent)* integer value which selects the audio output.
 
 **f:** Frame size *(default 480)* set in bytes the size of the audio frame to be passed onto OPUS for conversion. For example a 480 byte frame with a sample rate of 48000 Hz equates to 10 ms of audio. **Note:** Due to OPUS contraints the frame size can only be 120,240,480,960,1920 or 2880 bytes. 
 
