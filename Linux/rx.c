@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     fputs(":: [OB ONE] ::\n", stderr);
     fputs("RX: George O'Neill, 2015\n", stderr);
     
-    while ((c = getopt (argc, argv, "b:B:c:f:p:qr:v")) != -1) {
+    while ((c = getopt (argc, argv, "b:B:c:d:f:p:qr:v")) != -1) {
         switch (c) {
             case 'b':
                 bytes_per_frame = atoi(optarg);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
             case 'c':
                 channels = atoi(optarg);
                 break;
-            case 'd';
+            case 'd':
                 device = atoi(optarg);
                 break;
             case 'f':
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
                     case 'b':
                     case 'B':
                     case 'c':
-                    case 'd';
+                    case 'd':
                     case 'f':
                     case 'p':
                     case 'r':

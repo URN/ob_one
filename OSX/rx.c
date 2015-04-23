@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
             case 'c':
                 channels = atoi(optarg);
                 break;
-            case 'd';
+            case 'd':
                 device = atoi(optarg);
                 break;
             case 'f':
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
                     case 'b':
                     case 'B':
                     case 'c':
-                    case 'd';
+                    case 'd':
                     case 'f':
                     case 'p':
                     case 'r':
