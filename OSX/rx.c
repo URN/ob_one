@@ -19,7 +19,7 @@
 #define defaultFrameSize 480
 #define defaultBufferTime 50 // milliseconds
 #define defaultPort "1350"
-#define defaultDevice 1 // deault 1 for osx, 0 for linux
+#define defaultDevice 0
 
 #define DEFAULT_MAX_ENCODED_BYTES 8192
 
@@ -185,18 +185,22 @@ int main(int argc, char *argv[])
     
     /* Prepare the audio device via portaudio*/
 
-    outputParameters.device = device; 
-    outputParameters.channelCount = channels;
-    outputParameters.sampleFormat = paInt16;
-    outputParameters.suggestedLatency = buffer_time / 1000;
-    outputParameters.hostApiSpecificStreamInfo = NULL;
-
     err = Pa_Initialize();
     if (err != paNoError) {
         printf("PortAudio failed to initialise: %s\n", Pa_GetErrorText(err));
         return -1;
     }
     
+    if(device !=0) { 
+        outputParameters.device = device; 
+    { else }
+        outputParameters.device = Pa_GetDefaultOutputDevice();
+    }
+    outputParameters.channelCount = channels;
+    outputParameters.sampleFormat = paInt16;
+    outputParameters.suggestedLatency = buffer_time / 1000;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
+
     err = Pa_OpenStream(&stream, NULL, &outputParameters, rate, frame, paNoFlag, NULL, NULL);
     if (err != paNoError) {
         printf("PortAudio failed to open stream: %s\n", Pa_GetErrorText(err));
