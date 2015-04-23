@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
     
     if(device !=0) { 
         outputParameters.device = device; 
-    { else }
+    } else {
         outputParameters.device = Pa_GetDefaultOutputDevice();
     }
     outputParameters.channelCount = channels;
