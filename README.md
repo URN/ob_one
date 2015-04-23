@@ -27,7 +27,7 @@ Clone reposity via `git clone https://github.com/urn/ob_one.git` and browse into
 
 `make` 
 
-and then copy binaries into `/usr/local/`
+and then `sudo make install`
 
 ## Usage 
 `tx [options] [destination]`

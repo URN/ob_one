@@ -14,3 +14,6 @@ rx:	rx.o
 clean:
 	rm -f tx rx
 	rm -f *.o *.d
+
+install:
+	cp tx rx /usr/bin
