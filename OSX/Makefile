@@ -1,5 +1,5 @@
-CFLAGS+=-MMD
-LDLIBS+=-lportaudio -lopus
+CFLAGS+=-MMD -I/usr/local/include
+LDLIBS+=-L/usr/local/lib -lportaudio -lopus
 
 -include .config
 
